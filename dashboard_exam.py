@@ -129,6 +129,38 @@ def chart_sales_profit_scatter(df: pd.DataFrame):
                   annotation_text="Điểm hòa vốn", annotation_position="bottom right")
     return fig
 
+def chart_customer_type_bar(df: pd.DataFrame):
+    ct_df = (df.groupby("CustomerType")["Sales"]
+               .sum()
+               .sort_values(ascending=True)
+               .reset_index())
+    fig = px.bar(
+        ct_df, x="Sales", y="CustomerType",
+        orientation="h",
+        title="Doanh thu theo Customer Type",
+        color="CustomerType",
+        text_auto="$.2s",
+        color_discrete_sequence=px.colors.qualitative.Pastel
+    )
+    fig.update_layout(showlegend=False, yaxis_title="")
+    return fig
+
+def chart_customer_type_trend(df: pd.DataFrame):
+    monthly_ct = (df.groupby(["YearMonth", "CustomerType"])["Sales"]
+                    .sum()
+                    .reset_index()
+                    .rename(columns={"YearMonth": "Month", "Sales": "Revenue"}))
+    fig = px.line(
+        monthly_ct, x="Month", y="Revenue",
+        color="CustomerType",
+        title="Xu hướng Doanh thu theo Customer Type",
+        markers=True,
+        line_shape="spline",
+        color_discrete_sequence=px.colors.qualitative.Pastel
+    )
+    fig.update_layout(xaxis_title="", yaxis_title="Doanh thu ($)", hovermode="x unified")
+    return fig
+
 # ─── Main Application ─────────────────────────────────────────────────────────
 def main():
     # Load data
@@ -164,7 +196,16 @@ def main():
     with col4:
         st.plotly_chart(chart_sales_profit_scatter(filtered), use_container_width=True)
 
-    # Section 4: Data Table
+    # Section 4: CustomerType Analysis
+    st.divider()
+    st.markdown("### Phân tích theo Customer Type")
+    col5, col6 = st.columns([1, 2])
+    with col5:
+        st.plotly_chart(chart_customer_type_bar(filtered), use_container_width=True)
+    with col6:
+        st.plotly_chart(chart_customer_type_trend(filtered), use_container_width=True)
+
+    # Section 5: Data Table
     with st.expander("🗂️ Xem chi tiết bảng dữ liệu (Raw Data)"):
         st.dataframe(
             filtered[["OrderDate", "Region", "Category", "ProductName", "Sales", "Quantity", "Profit"]].sort_values("OrderDate", ascending=False),
